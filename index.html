@@ -101,6 +101,7 @@ h2{font-size:clamp(24px,4.5vw,40px);font-weight:700;margin:0;text-align:center;t
 .loop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
 .loop .step{border:1px solid var(--air);color:var(--air);border-radius:999px;padding:10px 26px;font-size:17px;letter-spacing:.3em;padding-right:18px}
 .loop .arr{color:var(--fg-dim)}
+.slogan{color:var(--air);font-size:clamp(16px,2.6vw,22px);font-weight:500;text-align:center;line-height:2;letter-spacing:.08em;margin:0;text-wrap:balance}
 
 /* ─── 字幕 ─── */
 #subs{position:absolute;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;padding:0 20px;pointer-events:none}
@@ -235,6 +236,7 @@ h2{font-size:clamp(24px,4.5vw,40px);font-weight:700;margin:0;text-align:center;t
         <span class="step">行動</span>
       </div>
       <h2>讓看不見的空氣<br>變成看得見的安心</h2>
+      <p class="slogan">「讓人感受不到物聯網裝置的存在<br>卻能有效優化身處的環境」</p>
       <p class="lede">謝謝您的聆聽<br>閎域物聯網科技 感謝您</p>
     </section>
 
@@ -276,6 +278,7 @@ const CLIPS=[
  {s:6,a:'audio/s6b.mp3',t:'繼電器路數、站號與觸發條件，都能在中控台遠端設定。'},
  {s:7,a:'audio/s7a.mp3',t:'每天早上八點，系統自動產出昨日空品日報與改善建議，主動推送。'},
  {s:8,a:'audio/s8a.mp3',t:'量測、判斷、行動——讓看不見的空氣，變成看得見的安心。'},
+ {s:8,a:'audio/s8c.mp3',t:'我們的理念是——讓人感受不到物聯網裝置的存在，卻能有效優化您身處的環境。'},
  {s:8,a:'audio/s8b.mp3',t:'謝謝您的聆聽——閎域物聯網科技，感謝您。'}
 ];
 const NSCENE=8, GAP=650;            // 段落間停頓 ms
