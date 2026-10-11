@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>空品換氣智慧監控系統</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版面概念：全螢幕電影舞台，深色單一主題（科技銀：石墨黑＋鈦銀＋空氣青），字幕置底如影片 */
+:root{
+  --bg:#0b0d10;          /* 石墨黑 */
+  --bg2:#12161b;         /* 舞台面板 */
+  --fg:#e8ebef;          /* 鈦銀亮 */
+  --fg-dim:#8b94a0;      /* 鈦銀暗 */
+  --line:#242b33;        /* 邊線 */
+  --air:#5fd4c4;         /* 空氣青（主強調） */
+  --warn:#e8b45a;        /* 警示琥珀 */
+  --bad:#e07059;         /* 超標紅 */
+  --font-body:'Noto Sans TC',-apple-system,'PingFang TC',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);overflow:hidden}
+
+#stage{position:relative;height:100%;display:flex;flex-direction:column}
+
+/* ─── 場景容器 ─── */
+.scenes{position:relative;flex:1;min-height:0}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:28px;padding:24px 20px 120px;opacity:0;visibility:hidden;transform:translateY(14px);
+  transition:opacity .7s ease,transform .7s ease,visibility .7s}
+.scene.on{opacity:1;visibility:visible;transform:none}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.35em;color:var(--air);text-transform:uppercase}
+h1{font-size:clamp(30px,6vw,58px);font-weight:900;margin:0;text-align:center;text-wrap:balance;letter-spacing:.06em}
+h2{font-size:clamp(24px,4.5vw,40px);font-weight:700;margin:0;text-align:center;text-wrap:balance;letter-spacing:.04em}
+.lede{color:var(--fg-dim);font-size:clamp(14px,2vw,18px);text-align:center;max-width:34em;margin:0;line-height:1.9}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ─── S1 開場 ─── */
+.triad{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.node{border:1px solid var(--line);background:var(--bg2);border-radius:10px;padding:14px 20px;text-align:center;min-width:120px}
+.node b{display:block;font-size:15px;letter-spacing:.08em}
+.node span{font-family:var(--font-mono);font-size:11px;color:var(--fg-dim)}
+.node.hot{border-color:var(--air);box-shadow:0 0 24px rgba(95,212,196,.15)}
+.wirerow{display:flex;align-items:center;gap:8px;color:var(--fg-dim);font-family:var(--font-mono);font-size:12px}
+.wirerow i{display:block;width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--air));animation:flow 2s linear infinite}
+@keyframes flow{from{background-position:-60px 0}to{background-position:60px 0}}
+
+/* ─── S2 問題:漂浮粒子 ─── */
+.haze{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.p{position:absolute;border-radius:50%;background:var(--fg-dim);opacity:.14;animation:drift 14s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(60px,-80px)}}
+.ghostnum{font-family:var(--font-mono);font-size:clamp(40px,9vw,88px);font-weight:600;color:transparent;
+  -webkit-text-stroke:1px var(--line);letter-spacing:.05em}
+.ghostnum em{font-style:normal;-webkit-text-stroke:1px var(--bad);color:transparent}
+
+/* ─── 通用裝置卡 ─── */
+.device{border:1px solid var(--line);background:var(--bg2);border-radius:14px;padding:22px 26px;max-width:520px;width:min(92%,520px)}
+.device .dh{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.device .dh b{font-size:18px;letter-spacing:.1em}
+.device .dh span{font-family:var(--font-mono);font-size:11px;color:var(--fg-dim)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--font-mono);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--fg)}
+.chip.a{border-color:rgba(95,212,196,.5);color:var(--air)}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--air);margin-right:6px;animation:beat 1.6s ease infinite}
+@keyframes beat{0%,100%{box-shadow:0 0 0 0 rgba(95,212,196,.5)}50%{box-shadow:0 0 0 8px rgba(95,212,196,0)}}
+
+/* ─── S4 儀表板 ─── */
+.dash{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:min(92%,640px)}
+.tile{flex:1 1 140px;border:1px solid var(--line);background:var(--bg2);border-radius:10px;padding:14px 16px;min-width:0}
+.tile .k{font-size:11px;color:var(--fg-dim);letter-spacing:.15em}
+.tile .v{font-family:var(--font-mono);font-size:26px;font-variant-numeric:tabular-nums;margin-top:4px}
+.tile .v.ok{color:var(--air)} .tile .v.hi{color:var(--warn)}
+.sparkbox{flex:2 1 300px}
+.sparkbox svg{display:block;width:100%;height:64px;margin-top:6px}
+
+/* ─── S5 語音 ─── */
+.wave{display:flex;gap:5px;align-items:flex-end;height:64px}
+.wave i{width:7px;background:var(--air);border-radius:3px;animation:wv 1s ease-in-out infinite alternate}
+@keyframes wv{from{height:12%}to{height:100%}}
+.alertline{border:1px solid rgba(232,180,90,.45);background:rgba(232,180,90,.07);color:var(--warn);
+  border-radius:10px;padding:12px 18px;font-size:14px;max-width:30em;text-align:center;line-height:1.8}
+
+/* ─── S6 繼電器/風扇 ─── */
+.relays{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.relay{width:52px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);position:relative}
+.relay i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--fg-dim);transition:all .4s}
+.relay.on{border-color:var(--air)} .relay.on i{left:25px;background:var(--air)}
+.fan{font-size:52px;display:inline-block;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── S7 報表 ─── */
+.report{border:1px solid var(--line);background:var(--bg2);border-radius:12px;padding:20px 26px;width:min(90%,420px)}
+.report .rt{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.report .rt b{letter-spacing:.1em}
+.report .rt span{font-family:var(--font-mono);font-size:12px;color:var(--air)}
+.rline{display:flex;justify-content:space-between;font-size:13px;color:var(--fg-dim);padding:5px 0;font-variant-numeric:tabular-nums}
+.rline b{color:var(--fg);font-family:var(--font-mono);font-weight:600}
+
+/* ─── S8 閉環 ─── */
+.loop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
+.loop .step{border:1px solid var(--air);color:var(--air);border-radius:999px;padding:10px 26px;font-size:17px;letter-spacing:.3em;padding-right:18px}
+.loop .arr{color:var(--fg-dim)}
+
+/* ─── 字幕 ─── */
+#subs{position:absolute;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;padding:0 20px;pointer-events:none}
+#subs span{background:rgba(5,7,9,.78);border-radius:8px;padding:10px 18px;font-size:clamp(15px,2.4vw,19px);
+  line-height:1.7;max-width:36em;text-align:center;letter-spacing:.03em;opacity:0;transition:opacity .3s}
+#subs span.show{opacity:1}
+
+/* ─── 控制列 ─── */
+#bar{position:relative;display:flex;align-items:center;gap:14px;padding:12px 18px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--bg)}
+#bar button{background:none;border:1px solid var(--line);color:var(--fg);border-radius:8px;
+  font-family:var(--font-body);font-size:13px;padding:7px 14px;cursor:pointer}
+#bar button:hover{border-color:var(--air);color:var(--air)}
+#bar button:focus-visible{outline:2px solid var(--air);outline-offset:2px}
+.dots{display:flex;gap:7px;flex:1;justify-content:center}
+.dots b{width:9px;height:9px;border-radius:50%;background:var(--line);cursor:pointer;transition:all .3s}
+.dots b.cur{background:var(--air);transform:scale(1.25)}
+.dots b.done{background:var(--fg-dim)}
+#timer{font-family:var(--font-mono);font-size:11px;color:var(--fg-dim);min-width:3.5em;text-align:right}
+
+/* ─── 開場遮罩 ─── */
+#cover{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:22px;background:radial-gradient(ellipse at 50% 35%,#131920 0%,var(--bg) 70%)}
+#cover .eyebrow{animation:none}
+#cover h1{font-size:clamp(28px,5.5vw,52px)}
+#playbtn{display:flex;align-items:center;gap:12px;background:var(--air);color:#06201c;border:none;border-radius:999px;
+  font-family:var(--font-body);font-size:17px;font-weight:700;letter-spacing:.2em;padding:15px 38px 15px 32px;cursor:pointer;
+  box-shadow:0 0 40px rgba(95,212,196,.25)}
+#playbtn:hover{transform:scale(1.04)}
+#cover .hint{font-size:12px;color:var(--fg-dim)}
+#cover.gone{opacity:0;visibility:hidden;transition:opacity .8s,visibility .8s}
+</style>
+
+<div id="stage">
+  <div class="scenes">
+
+    <section class="scene" id="sc1">
+      <div class="eyebrow">Smart IoT · 閎域物聯網科技</div>
+      <h1>空品換氣智慧監控系統</h1>
+      <p class="lede">感測 → 警報 → 自動換氣，一條龍的室內空氣品質閉環</p>
+      <div class="triad">
+        <div class="node hot"><b>IAQ-1</b><span>感測節點</span></div>
+        <div class="wirerow"><i></i>MQTT<i></i></div>
+        <div class="node hot"><b>中控台</b><span>aq-server</span></div>
+        <div class="wirerow"><i></i>RS485<i></i></div>
+        <div class="node hot"><b>LINK-1</b><span>換氣連動器</span></div>
+      </div>
+    </section>
+
+    <section class="scene" id="sc2">
+      <div class="haze" id="haze"></div>
+      <div class="eyebrow">看不見的風險</div>
+      <h2>空氣出問題時<br>人是最後知道的</h2>
+      <div class="ghostnum">CO₂ <em>1600</em> ppm · PM2.5 <em>60</em> µg/m³</div>
+      <p class="lede">二氧化碳讓人昏沉、PM2.5 傷害呼吸道——但它們都沒有顏色、沒有味道。</p>
+    </section>
+
+    <section class="scene" id="sc3">
+      <div class="eyebrow">感測節點</div>
+      <h2>IAQ-1 · 每 30 秒一筆真實數據</h2>
+      <div class="device">
+        <div class="dh"><span class="pulse"></span><b>IAQ-1</b><span>Raspberry Pi Pico W · MicroPython</span></div>
+        <div class="chips">
+          <span class="chip a">SCD4x CO₂</span><span class="chip a">SEN65 PM / VOC / NOx</span>
+          <span class="chip a">溫濕度</span><span class="chip">MQTT over TLS</span>
+          <span class="chip">LoRa E220</span><span class="chip">裝置網頁設定</span>
+        </div>
+      </div>
+      <p class="lede">加密回傳中控台，斷線自動以 LWT 通報離線狀態。</p>
+    </section>
+
+    <section class="scene" id="sc4">
+      <div class="eyebrow">中控台</div>
+      <h2>一眼看懂每個房間的空氣</h2>
+      <div class="dash">
+        <div class="tile"><div class="k">CO₂</div><div class="v ok">642<small style="font-size:12px"> ppm</small></div></div>
+        <div class="tile"><div class="k">PM2.5</div><div class="v ok">8<small style="font-size:12px"> µg/m³</small></div></div>
+        <div class="tile"><div class="k">VOC</div><div class="v hi">187</div></div>
+        <div class="tile sparkbox"><div class="k">24H 趨勢</div>
+          <svg viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="0,46 30,44 60,48 90,38 120,20 150,14 180,26 210,40 240,44 270,47 300,45"
+              fill="none" stroke="#5fd4c4" stroke-width="2"/>
+            <polygon points="0,46 30,44 60,48 90,38 120,20 150,14 180,26 210,40 240,44 270,47 300,45 300,64 0,64"
+              fill="rgba(95,212,196,.12)" stroke="none"/>
+          </svg>
+        </div>
+      </div>
+      <p class="lede">FastAPI + React + WebSocket 即時更新 · PWA 手機全螢幕</p>
+    </section>
+
+    <section class="scene" id="sc5">
+      <div class="eyebrow">語音警報 · 推播</div>
+      <h2>超標的瞬間，房子會說話</h2>
+      <div class="wave" aria-hidden="true">
+        <i style="animation-delay:0s"></i><i style="animation-delay:.12s"></i><i style="animation-delay:.24s"></i>
+        <i style="animation-delay:.06s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.18s"></i>
+        <i style="animation-delay:.36s"></i><i style="animation-delay:.09s"></i><i style="animation-delay:.27s"></i>
+      </div>
+      <div class="alertline">「注意，4 樓書房目前空氣品質不良：PM2.5 60，不健康。」</div>
+      <p class="lede">中文語音即時播報 + Discord 同步推播 · 規則引擎可自訂（抽菸偵測、恢復通知、安靜時段）</p>
+    </section>
+
+    <section class="scene" id="sc6">
+      <div class="eyebrow">換氣連動</div>
+      <h2>LINK-1 · 數據直接變成行動</h2>
+      <div style="display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:center">
+        <div class="relays">
+          <div class="relay on"><i></i></div><div class="relay on"><i></i></div>
+          <div class="relay"><i></i></div><div class="relay"><i></i></div>
+        </div>
+        <span class="fan" aria-hidden="true">✣</span>
+      </div>
+      <p class="lede">RS485 Modbus 繼電器自動啟停排風設備，路數、站號、觸發條件全部可在中控台遠端設定。</p>
+    </section>
+
+    <section class="scene" id="sc7">
+      <div class="eyebrow">自動日報</div>
+      <h2>每天 08:00，報告自己送上門</h2>
+      <div class="report">
+        <div class="rt"><b>昨日空品日報</b><span>08:00 · Discord</span></div>
+        <div class="rline"><span>CO₂ 平均 / 峰值</span><b>655 / 1,204 ppm</b></div>
+        <div class="rline"><span>PM2.5 超標時段</span><b>14:10–14:35</b></div>
+        <div class="rline"><span>換氣建議</span><b style="color:var(--air)">午後加強排風</b></div>
+      </div>
+    </section>
+
+    <section class="scene" id="sc8">
+      <div class="eyebrow">Closing the loop</div>
+      <div class="loop">
+        <span class="step">量測</span><span class="arr">→</span>
+        <span class="step">判斷</span><span class="arr">→</span>
+        <span class="step">行動</span>
+      </div>
+      <h2>讓看不見的空氣<br>變成看得見的安心</h2>
+      <p class="lede">謝謝您的聆聽<br>閎域物聯網科技 感謝您</p>
+    </section>
+
+    <div id="subs"><span id="subtext"></span></div>
+
+    <div id="cover">
+      <div class="eyebrow">專案說明影片 · 約 2 分鐘</div>
+      <h1>空品換氣智慧監控系統</h1>
+      <button id="playbtn">▶&nbsp;播放</button>
+      <div class="hint">含中文配音與字幕，請開啟聲音</div>
+    </div>
+  </div>
+
+  <div id="bar">
+    <button id="toggle">播放</button>
+    <button id="restart">重播</button>
+    <button id="bgm" aria-pressed="true">音樂：開</button>
+    <div class="dots" id="dots"></div>
+    <div id="timer">0/8</div>
+  </div>
+</div>
+
+<script>
+// 播放清單:每段 = { scene 編號, 音檔, 字幕 }
+const CLIPS=[
+ {s:1,a:'audio/s1a.mp3',t:'空品換氣智慧監控系統——從感測、警報，到自動換氣的完整閉環。'},
+ {s:1,a:'audio/s1b.mp3',t:'整合 IAQ-1 感測節點、中控台，與 LINK-1 換氣連動器，三位一體。'},
+ {s:2,a:'audio/s2a.mp3',t:'二氧化碳過高讓人昏沉，PM2.5 超標傷害呼吸道——但這些，都是肉眼看不見的。'},
+ {s:2,a:'audio/s2b.mp3',t:'什麼時候該開窗？什麼時候該開排風？過去，只能靠感覺。'},
+ {s:3,a:'audio/s3a.mp3',t:'IAQ-1 感測節點以 Raspberry Pi Pico W 打造，搭載 SCD4x 二氧化碳感測器與 SEN65 複合感測器。'},
+ {s:3,a:'audio/s3b.mp3',t:'每 30 秒量測 CO₂、PM2.5、VOC 與溫濕度，透過加密的 MQTT 回傳中控台。'},
+ {s:4,a:'audio/s4a.mp3',t:'中控台以 FastAPI 與 React 打造，科技銀介面即時顯示各房間空品與歷史曲線。'},
+ {s:4,a:'audio/s4b.mp3',t:'支援 PWA——手機加入主畫面，就是一座全螢幕監控站。'},
+ {s:5,a:'audio/s5a.mp3',t:'空品超標時，系統立刻以中文語音播報警示，並同步推播到 Discord。'},
+ {s:5,a:'audio/s5b.mp3',t:'內建規則引擎——PM2.5 瞬間飆高？可能有人在抽菸，馬上提醒通風。'},
+ {s:6,a:'audio/s6a.mp3',t:'LINK-1 換氣連動器透過 RS485 Modbus 控制繼電器，依空品數據自動啟停排風設備。'},
+ {s:6,a:'audio/s6b.mp3',t:'繼電器路數、站號與觸發條件，都能在中控台遠端設定。'},
+ {s:7,a:'audio/s7a.mp3',t:'每天早上八點，系統自動產出昨日空品日報與改善建議，主動推送。'},
+ {s:8,a:'audio/s8a.mp3',t:'量測、判斷、行動——讓看不見的空氣，變成看得見的安心。'},
+ {s:8,a:'audio/s8b.mp3',t:'謝謝您的聆聽——閎域物聯網科技，感謝您。'}
+];
+const NSCENE=8, GAP=650;            // 段落間停頓 ms
+let idx=-1, playing=false, player=new Audio(), timer=null;
+
+const $=id=>document.getElementById(id);
+const subEl=$('subtext'), dotsEl=$('dots'), tgl=$('toggle');
+
+// 建場景圓點
+for(let i=1;i<=NSCENE;i++){
+  const b=document.createElement('b');
+  b.title='第 '+i+' 段';
+  b.addEventListener('click',()=>jumpScene(i));
+  dotsEl.appendChild(b);
+}
+
+// S2 漂浮粒子
+(()=>{const h=$('haze');for(let i=0;i<26;i++){const p=document.createElement('i');
+  p.className='p';const s=3+Math.random()*9;
+  p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${8+Math.random()*10}s;animation-delay:-${Math.random()*10}s`;
+  h.appendChild(p);}})();
+
+function showScene(n){
+  document.querySelectorAll('.scene').forEach((el,i)=>el.classList.toggle('on',i===n-1));
+  [...dotsEl.children].forEach((d,i)=>{d.classList.toggle('cur',i===n-1);d.classList.toggle('done',i<n-1)});
+  $('timer').textContent=n+'/'+NSCENE;
+}
+function setSub(t){subEl.textContent=t||'';subEl.classList.toggle('show',!!t)}
+
+function playClip(i){
+  clearTimeout(timer);
+  if(i>=CLIPS.length){ playing=false; tgl.textContent='播放'; setSub(''); return; }
+  idx=i; const c=CLIPS[i];
+  showScene(c.s); setSub(c.t);
+  player.src=c.a;
+  player.play().catch(()=>{ playing=false; tgl.textContent='播放'; });
+}
+player.addEventListener('ended',()=>{ if(playing) timer=setTimeout(()=>playClip(idx+1),GAP); });
+player.addEventListener('error',()=>{ // 音檔載入失敗時以估時長前進，字幕照跑
+  if(playing) timer=setTimeout(()=>playClip(idx+1),4500);
+});
+
+function jumpScene(n){
+  const i=CLIPS.findIndex(c=>c.s===n);
+  if(i<0)return;
+  if(!playing){playing=true;tgl.textContent='暫停';}
+  playClip(i);
+}
+function start(){ $('cover').classList.add('gone'); playing=true; tgl.textContent='暫停'; playClip(0); }
+
+$('playbtn').addEventListener('click',start);
+tgl.addEventListener('click',()=>{
+  if(idx<0){start();return;}
+  if(playing){playing=false;player.pause();clearTimeout(timer);tgl.textContent='播放';}
+  else{playing=true;tgl.textContent='暫停';
+    if(player.src&&!player.ended){player.play().catch(()=>{});}
+    else playClip(idx+1<CLIPS.length?idx+1:0);}
+});
+$('restart').addEventListener('click',()=>{playing=true;tgl.textContent='暫停';playClip(0);});
+
+showScene(1);   // 靜止狀態即呈現第一景
+
+// ─── 背景音樂:Web Audio 合成環境 pad(空靈和弦 + 氣流聲),不蓋過旁白 ───
+let ac=null,bgmGain=null,bgmOn=true,bgmTimer=null;
+const PROG=[ [220.0,261.63,329.63,392.0],   // Am7
+             [174.61,220.0,261.63,349.23],  // F
+             [196.0,246.94,293.66,392.0],   // G
+             [164.81,220.0,261.63,329.63] ];// Am/E
+let chordIdx=0;
+function bgmChord(){
+  if(!ac||!bgmOn)return;
+  const t=ac.currentTime,DUR=8;
+  PROG[chordIdx%PROG.length].forEach((f,i)=>{
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type=i%2?'sine':'triangle';o.frequency.value=f;
+    o.detune.value=(Math.random()*8-4);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.4/(i+1.3),t+2.5);    // 緩慢起音
+    g.gain.linearRampToValueAtTime(0,t+DUR+1.5);
+    o.connect(g).connect(bgmGain);
+    o.start(t);o.stop(t+DUR+2);
+  });
+  chordIdx++;
+  bgmTimer=setTimeout(bgmChord,8000);
+}
+function bgmStart(){
+  if(!bgmOn)return;
+  if(!ac){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    bgmGain=ac.createGain();bgmGain.gain.value=.30;      // 低於旁白但聽得見
+    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2000;
+    bgmGain.connect(lp).connect(ac.destination);
+    // 氣流聲:白噪音過帶通,極低音量
+    const len=ac.sampleRate*2,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const n=ac.createBufferSource();n.buffer=buf;n.loop=true;
+    const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=.6;
+    const ng=ac.createGain();ng.gain.value=.05;
+    n.connect(bp).connect(ng).connect(bgmGain);n.start();
+  }
+  if(ac.state==='suspended')ac.resume();
+  clearTimeout(bgmTimer);bgmChord();
+}
+function bgmStop(){clearTimeout(bgmTimer);if(ac)ac.suspend();}
+$('bgm').addEventListener('click',()=>{
+  bgmOn=!bgmOn;
+  $('bgm').textContent=bgmOn?'音樂：開':'音樂：關';
+  $('bgm').setAttribute('aria-pressed',bgmOn);
+  if(bgmOn&&playing)bgmStart();else bgmStop();
+});
+// 掛進既有播放流程
+const _start=start;
+start=function(){_start();bgmStart();};
+$('playbtn').removeEventListener('click',_start);
+$('playbtn').addEventListener('click',start);
+tgl.addEventListener('click',()=>{ if(playing)bgmStart(); else bgmStop(); });
+$('restart').addEventListener('click',bgmStart);
+</script>
+
+</html>
